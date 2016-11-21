@@ -1,17 +1,5 @@
 const redis = require('./modules/Redis');
-const fetchData = require('./modules/httpFetch');
 const cheerio = require('cheerio');
-const config = require('./config');
-
-const hostName = config.hostName; 
-const imageLinkRepository = [];
-const linkRepository = ['/'];
-let linkRepositoryIndex = 0;
-
-function store(data){
-	var r = new redis();
-  return r.cache(data);
-}
 
 function digestImageLinks(imageLinks){
 
@@ -65,30 +53,4 @@ function analyze(rawData){
   return;
 }
 
-function main(){
-  let path = (linkRepository.length === 1) ? linkRepository[linkRepositoryIndex] : linkRepository[linkRepositoryIndex].substring(hostName.length);
-  fetchData(path).
-  then(function(rawData){
-    linkRepositoryIndex++;
-    return rawData;
-  })
-  .then(analyze)
-  .then(function(){
-    let keepGoing = linkRepository.length > linkRepositoryIndex;
-    if(keepGoing){
-      main();
-      console.log('task: ', linkRepositoryIndex, 'of', linkRepository.length);
-    } else {
-      store(imageLinkRepository);
-      console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
-      console.log('task complete');
-      console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
-    }
-  })
-  .catch(function(e){
-    console.log(e);
-  });
-}
-
-console.log('starting');
-main();
+module.exports = analyze;

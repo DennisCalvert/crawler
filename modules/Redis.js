@@ -43,7 +43,7 @@ function RedisClient() {
     //console.log(err);
   });
 
-  function saddResponseCallback(err, res){
+  function redisCallback(err, res){
     if(err){
       console.log(err);
     } else {
@@ -69,15 +69,15 @@ function RedisClient() {
 		},
 
     addPageLink: function(link){
-      client.sadd(pageLinkSet, link, saddResponseCallback);
+      client.sadd(pageLinkSet, link, redisCallback);
     },
 
     addImgLink: function(link){
-      client.sadd(imgLinkSet, link, saddResponseCallback);
+      client.sadd(imgLinkSet, link, redisCallback);
     },
 
     addFailed: function(link){
-      client.sadd(failedSet, link, saddResponseCallback);
+      client.sadd(failedSet, link, redisCallback);
     },
 
     flushAll: function(){
