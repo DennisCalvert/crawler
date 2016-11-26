@@ -1,94 +1,64 @@
-const redis = require('./modules/Redis');
-const fetchData = require('./modules/httpFetch');
+
+const httpGet = require('./modules/httpFetch');
+const digestImageLinks = require('./modules/digestImageLinks');
+const digestPageLinks = require('./modules/digestPageLinks');
 const cheerio = require('cheerio');
-const config = require('./config');
+const log = require('./modules/log');
+const redis = require('./modules/Redis');
+//const Q = require('Q');
 
-const hostName = config.hostName; 
-const imageLinkRepository = [];
-const linkRepository = ['/'];
-let linkRepositoryIndex = 0;
+//   const ImgHtmlDomElms = $('img').toArray();
+//   digestImageLinks(ImgHtmlDomElms);
 
-function store(data){
-	var r = new redis();
-  return r.cache(data);
-}
 
-function digestImageLinks(imageLinks){
-
-  imageLinks.forEach(function(img){
-    const includeFile = img.attribs && 
-                        img.attribs.src && 
-                        img.attribs.src.includes(hostName);
-
-    if(includeFile){
-      let r = new redis();
-      r.addImgLink(img.attribs.src);
-    }
+function cachePageLinks(pageLinks){
+  return pageLinks.forEach(function(link){
+    const r = new redis();
+    return r.addPageLink(link)
+    .then(function(res){
+      //console.log(res);
+      if(res){
+        setTimeout(function(){
+          //console.log('stack cleared');
+          main(link);
+        },0);
+      }
+    });
   });
 }
 
-function isValidPageLink(href){
-  const omitList = [
-    'mailto',
-    '.jpg',
-    '.pdf',
-    '.rss',
-    '.php'
-  ];
-
-  return href.includes(hostName) && !omitList.some(o => href.includes(o));
+function extractPageLinks(html){
+  const $ = new cheerio.load(html);
+  const pageLinks = $('a').toArray();
+  return pageLinks;
 }
 
-function cacheLink(href){
-  if(!linkRepository.includes(href)){
-    linkRepository.push(href);
-  }
-	//let r = new redis();
-	//return r.addPageLink(href);
-}
+function main(link = '/'){
+  log.debug('Main called: ', link);
 
-function digestPageLinks(pageLinks){
-  return pageLinks.filter(e => e.attribs && e.attribs.href)
-    .map(e => e.attribs.href)
-    .filter(isValidPageLink)
-    .map(cacheLink);
-}
-
-function analyze(rawData){
-  const $ = new cheerio.load(rawData);
-
-  const imageLinks = $('img').toArray();
-  digestImageLinks(imageLinks);
-
-  const pageLinks = $('a').toArray(); //jquery get all hyperlinks
-  digestPageLinks(pageLinks);
-  return;
-}
-
-function main(){
-  let path = (linkRepository.length === 1) ? linkRepository[linkRepositoryIndex] : linkRepository[linkRepositoryIndex].substring(hostName.length);
-  fetchData(path).
-  then(function(rawData){
-    linkRepositoryIndex++;
-    return rawData;
+  httpGet(link)
+  .then(extractPageLinks)
+  .then(digestPageLinks)
+  .then(cachePageLinks)
+  .then(function(e){
+    console.log('cached:', link);
   })
-  .then(analyze)
-  .then(function(){
-    let keepGoing = linkRepository.length > linkRepositoryIndex;
-    if(keepGoing){
-      main();
-      console.log('task: ', linkRepositoryIndex, 'of', linkRepository.length);
-    } else {
-      store(imageLinkRepository);
-      console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
-      console.log('task complete');
-      console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
-    }
+  .catch(e => {
+    main(link);
+    log.error(link);
+    log.error(e)
   })
-  .catch(function(e){
-    console.log(e);
-  });
+  //.finally(e => console.log('task complete'));
 }
 
-console.log('starting');
-main();
+/*
+ * Start service
+ * empty cache then recusivley collect page links
+ */
+(function(){
+  console.log('starting');
+  var r = new redis();
+  r.flushAll();
+  console.log('cache cleared');
+  main();
+}());

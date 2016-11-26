@@ -2,6 +2,7 @@ var redis = require('redis');
 //var config = require('../config');
 var http = require('http');
 var bluebird = require('bluebird');
+var Q = require('Q');
 
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
@@ -59,7 +60,7 @@ function RedisClient() {
   return {
 		get: function(){
       console.log('fetching redis set');
-			return client.smembersAsync(imgLinkSet);
+			return client.smembersAsync(pageLinkSet);
 		},
 
 		cache: function(data){
@@ -68,12 +69,27 @@ function RedisClient() {
 			});
 		},
 
+    getPageLinks: function(){
+      return client.smembersAsync(pageLinkSet);
+    },
+
     addPageLink: function(link){
-      client.sadd(pageLinkSet, link, redisCallback);
+      //callback = callback || redisCallback;
+      const deferred = new Q.defer();
+      client.sadd(pageLinkSet, link, function(err, res){
+        if(err){
+          deferred.reject(err);
+        } else {
+          deferred.resolve(res);
+        }
+      });
+      return deferred.promise;
     },
 
     addImgLink: function(link){
-      client.sadd(imgLinkSet, link, redisCallback);
+      client.sadd(imgLinkSet, link, function(err, res){
+        console.log(err, res);
+      });
     },
 
     addFailed: function(link){

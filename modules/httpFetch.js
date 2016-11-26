@@ -6,7 +6,7 @@ function fetchData(path){
 
   const deferred = Q.defer();    
 
-  console.log('path:', path);
+//  console.log('path:', path);
   http.get({
     hostname: config.domain,
     port: 80,

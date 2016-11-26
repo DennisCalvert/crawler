@@ -18,6 +18,13 @@ function getContentType(fileName){
 }
 
 function saveImg(url){
+  // const re = /^-d+xd+/.exec(url);
+  // if(re){
+  //   var rangeStart = url.lastIndexOf('-');
+  //   var rangeEnd = url.lastIndexOf('.');
+  //   var fullResImageURL = url.substring(0, rangeStart) + url.substring(rangeEnd);
+  //   saveImg(fullResImageURL);
+  // }
   var fileName = getFileName(url);
   var contentType = getContentType(fileName);
   var requestOptions = {
