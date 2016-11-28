@@ -43,10 +43,7 @@ function saveImg(url){
   // return;
 
   function handleHTTPError(statusCode){
-    console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!');
-    console.log('upload failed for: ', url);
-    console.log('Unexpected status code: %d', statusCode);
-    console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!');
+    console.log('upload failed for: ', statusCode, url);
     //saveImg(url);
     let r = new redis();
     r.addFailed(url);

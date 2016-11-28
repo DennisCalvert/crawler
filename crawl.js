@@ -5,25 +5,27 @@ const digestPageLinks = require('./modules/digestPageLinks');
 const cheerio = require('cheerio');
 const log = require('./modules/log');
 const redis = require('./modules/Redis');
-//const Q = require('Q');
 
 //   const ImgHtmlDomElms = $('img').toArray();
 //   digestImageLinks(ImgHtmlDomElms);
 
+function safeRetry(link){
+  setTimeout(function(){
+    main(link);
+  },0);
+}
 
 function cachePageLinks(pageLinks){
+  const r = new redis();
   return pageLinks.forEach(function(link){
-    const r = new redis();
+    //const r = new redis();
     return r.addPageLink(link)
-    .then(function(res){
-      //console.log(res);
+    .then((res) => {
       if(res){
-        setTimeout(function(){
-          //console.log('stack cleared');
-          main(link);
-        },0);
+        safeRetry(link);
       }
-    });
+    })
+    .catch(e => console.log('error caching link: ', e));
   });
 }
 
@@ -34,19 +36,19 @@ function extractPageLinks(html){
 }
 
 function main(link = '/'){
-  log.debug('Main called: ', link);
+  console.log('Main called: ', link);
 
   httpGet(link)
   .then(extractPageLinks)
   .then(digestPageLinks)
   .then(cachePageLinks)
   .then(function(e){
-    console.log('cached:', link);
+    //console.log('cached:', link);
   })
   .catch(e => {
-    main(link);
-    log.error(link);
-    log.error(e)
+    console.log('failed caching: ', link);
+    safeRetry(link);
+    //log.error(e)
   })
   //.finally(e => console.log('task complete'));
 }
@@ -58,7 +60,7 @@ function main(link = '/'){
 (function(){
   console.log('starting');
   var r = new redis();
-  r.flushAll();
+  r.delPageLinks();
   console.log('cache cleared');
   main();
 }());

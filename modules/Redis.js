@@ -7,6 +7,8 @@ var Q = require('Q');
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 
+const prefix = '205';
+const tempPageLinkSet =  prefix + ':tempPageLinks';
 const imgLinkSet = '205:imgLinks';
 const pageLinkSet = '205:pageLinks';
 const failedSet = '205:failedImgCopy';
@@ -25,6 +27,7 @@ var coonectionOptions = {
         }
         if (options.times_connected > 10) {
             // End reconnecting with built in error
+            console.log('failed to connect to redis');
             return undefined;
         }
         // reconnect after
@@ -32,17 +35,19 @@ var coonectionOptions = {
     }
 };
 
-function RedisClient() {
-  var host = redisHost;
-  var port = 6379;
-  var client = redis.createClient(port, host, coonectionOptions); //creates a new client
+var host = redisHost;
+var port = 6379;
 
+  var client = redis.createClient(port, host, coonectionOptions); //creates a new client
   client.auth(redisAuthKey);
 
   client.on('error', function(err){
-    //console.log('redis client error -------------------');
-    //console.log(err);
+    console.log('redis client error -------------------');
+    console.log(err);
   });
+
+function RedisClient() {
+
 
   function redisCallback(err, res){
     if(err){
@@ -58,9 +63,10 @@ function RedisClient() {
   }
 
   return {
+
 		get: function(){
       console.log('fetching redis set');
-			return client.smembersAsync(pageLinkSet);
+			return client.smembersAsync(imgLinkSet);
 		},
 
 		cache: function(data){
@@ -73,8 +79,15 @@ function RedisClient() {
       return client.smembersAsync(pageLinkSet);
     },
 
+    pageLinksCopySet: function(){
+      return client.sunionstoreAsync(tempPageLinkSet, pageLinkSet);
+    },
+
+    popPageLink: function(){
+      return client.spopAsync(tempPageLinkSet);
+    },
+
     addPageLink: function(link){
-      //callback = callback || redisCallback;
       const deferred = new Q.defer();
       client.sadd(pageLinkSet, link, function(err, res){
         if(err){
@@ -83,12 +96,14 @@ function RedisClient() {
           deferred.resolve(res);
         }
       });
+      //client.quit();
       return deferred.promise;
     },
 
     addImgLink: function(link){
+      //console.log('attempting to cache: ', link);
       client.sadd(imgLinkSet, link, function(err, res){
-        console.log(err, res);
+        //console.log(err, res, link);
       });
     },
 
@@ -96,11 +111,20 @@ function RedisClient() {
       client.sadd(failedSet, link, redisCallback);
     },
 
-    flushAll: function(){
-      client.flushall(function(s){
+    del: function(){
+      client.del(imgLinkSet, function(s){
         console.log(s);
       });
+    },
+
+    delPageLinks: function(){
+      client.del(pageLinkSet, function(e){
+        console.log(e);
+      });
     }
+    // flushAll: function(){
+    //   return client.flushall();
+    // }
   }
 }
 

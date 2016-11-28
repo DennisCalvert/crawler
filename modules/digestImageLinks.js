@@ -5,6 +5,7 @@ function digestImageLinks(ImgHtmlDomElms){
 
   // string :
   function digestImageLink(url){
+    console.log('caching: ', url);
     // If we can determine that the image has been scaled down,
     // let's try to recover the original resolution
     // we are testing for the pressence of wordpress style
@@ -26,8 +27,8 @@ function digestImageLinks(ImgHtmlDomElms){
   // If we don't filter on image host, we can collect all
   // and then make an educated guess as to what the image
   // host is by looking for the host which is most often used
-  //.filter(img => img.attribs && img.attribs.src && img.attribs.src.includes(targetImageHost))
-  .filter(img => img.attribs && img.attribs.src)
+  .filter(img => img.attribs && img.attribs.src && img.attribs.src.includes('205photo'))
+  //.filter(img => img.attribs && img.attribs.src)
   .map(img => img.attribs.src)
   .forEach(digestImageLink);
 }
