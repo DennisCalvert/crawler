@@ -6,9 +6,7 @@ const cheerio = require('cheerio');
 const log = require('./modules/log');
 const redis = require('./modules/Redis');
 
-//   const ImgHtmlDomElms = $('img').toArray();
-//   digestImageLinks(ImgHtmlDomElms);
-
+const r = new redis();
 function safeRetry(link){
   setTimeout(function(){
     main(link);
@@ -16,11 +14,11 @@ function safeRetry(link){
 }
 
 function cachePageLinks(pageLinks){
-  const r = new redis();
   return pageLinks.forEach(function(link){
-    //const r = new redis();
     return r.addPageLink(link)
     .then((res) => {
+      // TODO Add logging here
+      console.log(res);
       if(res){
         safeRetry(link);
       }
@@ -42,15 +40,11 @@ function main(link = '/'){
   .then(extractPageLinks)
   .then(digestPageLinks)
   .then(cachePageLinks)
-  .then(function(e){
-    //console.log('cached:', link);
-  })
   .catch(e => {
     console.log('failed caching: ', link);
     safeRetry(link);
     //log.error(e)
   })
-  //.finally(e => console.log('task complete'));
 }
 
 /*
