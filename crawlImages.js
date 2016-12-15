@@ -1,12 +1,10 @@
 
 const httpGet = require('./modules/httpFetch');
 const digestImageLinks = require('./modules/digestImageLinks');
-const cheerio = require('cheerio');
 const log = require('./modules/log');
 const redis = require('./modules/Redis');
 
 const r = new redis();
-//console.log(r);
 
 function safeRetry(e){
     if(e){
@@ -16,37 +14,28 @@ function safeRetry(e){
     }
 }
 
-function extractImgLinks(html){
-  const $ = new cheerio.load(html);
-  const imgLinks = $('img').toArray();
-  //console.log(imgLinks);
-  return imgLinks;
-}
-
 let failedLinks = [];
 
 function main(){
 
   let currentLinkUrl;
 
-  r.popPageLink()
+  return r.popPageLink()
   .tap(l => currentLinkUrl = l)
   //.tap(console.log)
   .tap(safeRetry)
   .then(httpGet)
-  //.tap(console.log)
-  .then(extractImgLinks)
-  //.tap(console.log)
   .then(digestImageLinks)
+  .tap(console.log)
   .catch(e => {
-    //console.log('failed caching: ', e);
-    failedLinks.push(currentLinkUrl);
-    console.log(failedLinks.length);
+    console.log('[crawl images] failed caching image: ', e);
+    console.log('failed count: ', failedLinks.length);
     console.log(failedLinks);
+    failedLinks.push(currentLinkUrl);
     //r.ca(e);
     //log.error(e)
   })
-  //.finally(e => console.log('task complete'));
+  .finally(e => console.log('task complete'));
 }
 
 /*
@@ -57,8 +46,4 @@ function main(){
   console.log('starting');
   r.pageLinksCopySet()
   .then(main);
-  //var r = new redis();
-  //r.flushAll();
-  //console.log('cache cleared');
-  main();
 }());

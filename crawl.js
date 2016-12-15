@@ -18,31 +18,36 @@ function cachePageLinks(pageLinks){
     return r.addPageLink(link)
     .then((res) => {
       // TODO Add logging here
-      console.log(res);
+      //console.log(res);
       if(res){
+        console.log('[cache:updated] ', link)
         safeRetry(link);
-      }
+      } else {
+        console.log('[cache:notUpdate] already exists: ', link);
+      }      
     })
     .catch(e => console.log('error caching link: ', e));
   });
 }
 
-function extractPageLinks(html){
+function extractPageLinks(html){  
   const $ = new cheerio.load(html);
   const pageLinks = $('a').toArray();
   return pageLinks;
 }
 
 function main(link = '/'){
-  console.log('Main called: ', link);
+  //console.log('Main called: ', link);
 
   httpGet(link)
   .then(extractPageLinks)
   .then(digestPageLinks)
+  //.tap(console.log)
   .then(cachePageLinks)
   .catch(e => {
-    console.log('failed caching: ', link);
-    safeRetry(link);
+    //console.log('\x1b[36m', 'failed caching:' ,'\x1b[0m', link);
+    //console.error('failed caching: ', link);
+    //safeRetry(link);
     //log.error(e)
   })
 }

@@ -1,6 +1,6 @@
 const redis = require('./Redis');
 const config = require('../config');
-const hostName = config.hostName;
+const hostName = 'http://' + config.target.domain;
 
 let linkList = [];
 
@@ -14,8 +14,8 @@ function isValidPageLink(href){
   ];
 
   return href.length && 
-  (href.startsWith('/') || href.includes(hostName)) && 
-  !omitList.some(o => href.includes(o));
+        (href.startsWith('/') || href.includes(hostName)) && 
+        !omitList.some(o => href.includes(o));
 }
 
 function cacheLink(href){
@@ -33,7 +33,8 @@ function deDupe(link){
 }
 
 function digestPageLinks(pageLinks){
-  return pageLinks.filter(e => e.attribs && e.attribs.href)
+  return pageLinks
+    .filter(e => e.attribs && e.attribs.href)
     .map(e => e.attribs.href)
     .filter(isValidPageLink)
     .filter(deDupe);

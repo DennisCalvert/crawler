@@ -1,11 +1,22 @@
 const redis = require('./Redis');
+const $Q = require('Q');
+const cheerio = require('cheerio');
+const config = require('../config');
 
 // domNode :
-function digestImageLinks(ImgHtmlDomElms){
+function digestImageLinks(rawHTML){
 
+  function extractImgLinks(html){
+    const $ = new cheerio.load(html);
+    const imgLinks = $('img').toArray();
+    return imgLinks;
+  }
+
+  //console.log(ImgHtmlDomElms);
   // string :
-  function digestImageLink(url){
+  function digestImageLink(urlList, url){
     console.log('caching: ', url);
+    let r = new redis();
     // If we can determine that the image has been scaled down,
     // let's try to recover the original resolution
     // we are testing for the pressence of wordpress style
@@ -13,24 +24,27 @@ function digestImageLinks(ImgHtmlDomElms){
     // The regex could be expanded to look for more in the future
     const isCropped = /-\d+x\d+/.test(url);
     if(isCropped){
-      var rangeStart = url.lastIndexOf('-');
-      var rangeEnd = url.lastIndexOf('.');
-      var fullResImageURL = url.substring(0, rangeStart) + url.substring(rangeEnd);
-      digestImageLink(fullResImageURL);
+      const rangeStart = url.lastIndexOf('-');
+      const rangeEnd = url.lastIndexOf('.');
+      const fullResImageURL = url.substring(0, rangeStart) + url.substring(rangeEnd);
+      urlList.push(r.addImgLink(fullResImageURL))
     }
 
-    let r = new redis();
-    r.addImgLink(url);
+    return urlList.concat(r.addImgLink(url))
   }
 
-  ImgHtmlDomElms
-  // If we don't filter on image host, we can collect all
-  // and then make an educated guess as to what the image
-  // host is by looking for the host which is most often used
-  .filter(img => img.attribs && img.attribs.src && img.attribs.src.includes('205photo'))
-  //.filter(img => img.attribs && img.attribs.src)
-  .map(img => img.attribs.src)
-  .forEach(digestImageLink);
+  //let ImgHtmlDomElms = extractImgLinks(rawHTML);
+  return $Q.all(extractImgLinks(rawHTML)
+    // If we don't filter on image host, we can collect all
+    // and later make an educated guess as to what the image
+    // host is by looking for the host which is most often used
+    //.filter(img => img.attribs && img.attribs.src && img.attribs.src.includes(config.taget.imageHost))
+    .filter(img => img.attribs && img.attribs.src)
+    .map(img => img.attribs.src)
+    .filter(src => src.includes('.jpg'))
+    .reduce(digestImageLink, [])
+    //.forEach(console.log)
+  );
 }
 
 module.exports = digestImageLinks;

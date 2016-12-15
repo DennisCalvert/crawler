@@ -1,34 +1,46 @@
 const http = require('http');
+const https = require('https');
 const Q = require('q');
 const config = require('../config');
 
 function fetchData(path){
 
-  //path = encodeURIComponent(path);
-  //  console.log('path:', path);
+  path = encodeURI(path);
+  console.log('[http:fetching] ', path);
 
   const deferred = Q.defer();    
 
-  http.get({
-    hostname: config.domain,
+  const httpConfig = {
+    hostname: config.target.domain,
     port: 80,
     path: path,
     agent: false
-  }, function(res){
+  };
+
+  function httpCallback(res){
     var body = '';
     res.on("data", function(chunk){
-	    body += chunk;
+      body += chunk;
     });
     res.on("error", function(err){
       deferred.reject(err);
     });
     res.on("end", function(){
-	    deferred.resolve(body);
+      deferred.resolve(body);
     });
-  }).on('error', (e) => {
+  }
+
+  function httpErrorCallback(e){
     console.log(`Got error: ${e.message}`);
     deferred.reject(e);
-  });
+  }
+
+  if(config.target.domain.includes('https://')){
+    https.get(config.target.domain + path, httpCallback).on('error', httpErrorCallback);
+  } else {
+    http.get(httpConfig, httpCallback).on('error', httpErrorCallback);  
+  }
+  
   return deferred.promise;
 }
 

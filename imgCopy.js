@@ -3,37 +3,41 @@ var azure = require('azure-storage');
 var http = require('http');
 var config = require('./config');
 
-const storageAccountName = config.storageAccountName;
-const storageAccountKey = config.storageAccountKey;
-const containerName = config.storageContainerName;
-const domain = config.domain;
+const storageAccountName = config.azureStorage.accountName;
+const storageAccountKey = config.azureStorage.accountKey;
+//console.log(storageAccountKey, storageAccountName);
+const containerName = config.azureStorage.containerName;
+const conatinerConfig = {
+  publicAccessLevel: 'blob'
+};
+
+const blobSvc = azure.createBlobService(storageAccountName, storageAccountKey);
+
+const domain = config.target.domain;
 
 function getFileName(url){
   var range = 'http://'+domain+'/';
+  if(url.includes('www.' + domain)){
+    range.length += 4;
+  }
   return url.substring(range.length);
 }
 
 function getContentType(fileName){
-  return 'image/' + fileName.substring(fileName.lastIndexOf('.') + 1);
+  return 'image/jpeg';
+  //return 'image/' + fileName.substring(fileName.lastIndexOf('.') + 1);
 }
 
 function saveImg(url){
-  // const re = /^-d+xd+/.exec(url);
-  // if(re){
-  //   var rangeStart = url.lastIndexOf('-');
-  //   var rangeEnd = url.lastIndexOf('.');
-  //   var fullResImageURL = url.substring(0, rangeStart) + url.substring(rangeEnd);
-  //   saveImg(fullResImageURL);
-  // }
-  var fileName = getFileName(url);
-  var contentType = getContentType(fileName);
-  var requestOptions = {
+  const fileName = getFileName(url);
+  const contentType = getContentType(fileName);
+  const requestOptions = {
       host: domain,
       port: 80,
       path: '/' + fileName
   };
 
-  var blobOptions = {
+  const blobOptions = {
     contentSettings: {
       contentType: contentType
     }
@@ -59,11 +63,12 @@ function saveImg(url){
   }
 
   http.get(requestOptions, function (httpResponse) {
+    //return;
     if (200 !== httpResponse.statusCode) {
       handleHTTPError(httpResponse.statusCode);
       return;
     }
-    let blobSvc = azure.createBlobService(storageAccountName, storageAccountKey);
+    //let blobSvc = azure.createBlobService(storageAccountName, storageAccountKey);
     let writeStream = blobSvc.createWriteStreamToBlockBlob(containerName, fileName, blobOptions, blobWriteCallback)
       .on("data", function (chunk){
         //console.log("get data : "+chunk);
@@ -75,15 +80,26 @@ function saveImg(url){
       console.log(url,filename)
     })
   }).on('error', function(e) {
-      //console.log("Got error: " + e.message);
+      console.log("Got error: " + e.message);
   });
 }
 
 function main(){
-  var r = new redis();
-  r.get()
-    .then(data => data.forEach(saveImg))
-    .catch(e => console.log(e));
+
+  //var blobService = azure.createBlobService(storageAccountName, storageAccountKey);
+  blobSvc.createContainerIfNotExists(containerName, conatinerConfig, function(error, result, response) {
+    if (!error) {
+      // if result = true, container was created.
+      // if result = false, container already existed.
+      var r = new redis();
+      r.get()
+      //make sure links ending with {/} don't get cached
+      .then(list => list.filter(i => !/.*\/$/.test(i)))
+      .tap(console.log)
+      .then(data => data.forEach(saveImg))
+      .catch(e => console.log('[imgCopySave], [cahcing failed]: ',e));
+    }
+  });
 }
 
 console.log('starting');
