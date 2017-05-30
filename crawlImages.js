@@ -22,7 +22,6 @@ function main(){
 
   return r.popPageLink()
   .tap(l => currentLinkUrl = l)
-  //.tap(console.log)
   .tap(safeRetry)
   .then(httpGet)
   .then(digestImageLinks)

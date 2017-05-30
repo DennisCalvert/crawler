@@ -6,6 +6,8 @@ var r = new redis();
 // r.del();
 //r.client.keys();
 
-r.get().then(function(data){
-  console.log(data);
-});
+r.getPageLinks().then(console.log);
+
+// r.get().then(function(data){
+//   console.log(data);
+// });

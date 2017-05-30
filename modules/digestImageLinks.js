@@ -12,10 +12,8 @@ function digestImageLinks(rawHTML){
     return imgLinks;
   }
 
-  //console.log(ImgHtmlDomElms);
-  // string :
   function digestImageLink(urlList, url){
-    console.log('caching: ', url);
+    // console.log('caching: ', url);
     let r = new redis();
     // If we can determine that the image has been scaled down,
     // let's try to recover the original resolution
@@ -33,7 +31,7 @@ function digestImageLinks(rawHTML){
     return urlList.concat(r.addImgLink(url))
   }
 
-  //let ImgHtmlDomElms = extractImgLinks(rawHTML);
+  // Resolves an array of promises
   return $Q.all(extractImgLinks(rawHTML)
     // If we don't filter on image host, we can collect all
     // and later make an educated guess as to what the image
@@ -43,7 +41,6 @@ function digestImageLinks(rawHTML){
     .map(img => img.attribs.src)
     .filter(src => src.includes('.jpg'))
     .reduce(digestImageLink, [])
-    //.forEach(console.log)
   );
 }
 

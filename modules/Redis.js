@@ -6,9 +6,12 @@ var Q = require('Q');
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 
-const imgLinkSet = config.imgLinkSet;
-const imgLinkSetFailed = config.imgLinkSet + ':failed';
-const pageLinkSet = config.pageLinkSet;
+const domain = config.target.domain;
+
+// Redis set names
+const imgLinkSet = domain + ':imgLinks';
+const	pageLinkSet = domain + ':pageLinks';
+const imgLinkSetFailed = imgLinkSet + ':failed';
 const tempPageLinkSet =  pageLinkSet + ':temp';
 
 var coonectionOptions = {
@@ -31,15 +34,12 @@ var coonectionOptions = {
     }
 };
 
-console.log(config.redis.port, config.redis.host);
-
 var client = redis.createClient(config.redis.port, config.redis.host, coonectionOptions); //creates a new client
 
 client.auth(config.redis.authKey);
 
 client.on('error', function(err){
-  console.log('redis client error -------------------');
-  console.log(err);
+  console.log('redis client error', err);
 });
 
 client.on('connect', function(e){
@@ -58,18 +58,74 @@ function RedisClient() {
     //client.end(true);
   }
 
+  // function cache(data, dataSet){
+  //   console.log('caching: ', data);
+  //   const deferred = new Q.defer();
+  //   client.sadd(dataSet, data, function(err, res){
+  //     if(err){
+  //       deferred.reject(err);
+  //     } else {
+  //       deferred.resolve(res);
+  //     }
+  //   });
+  //   //client.quit();
+  //   return deferred.promise;
+  // }  
+
+  function factory(setName){
+    const tempSetName = setName + ':temp';
+
+    return {
+      get(){
+        return client.smembersAsync(setName);
+      },
+
+      put(data){
+        console.log('caching: ', data);
+        const deferred = new Q.defer();
+        client.sadd(setName, data, function(err, res){
+          if(err){
+            deferred.reject(err);
+          } else {
+            deferred.resolve(res);
+          }
+        });
+        //client.quit();
+        return deferred.promise;
+      },
+
+      delete(){
+        const deferred = new Q.defer();
+        client.del(setName, function(err, res){
+        if(err){
+          deferred.reject(err);
+        } else {
+          deferred.resolve(res);
+        }
+        });
+        //client.quit();
+        return deferred.promise;
+      },
+
+      copy(){
+        return client.sunionstoreAsync(tempSetName, setName);
+      }
+    }
+  }
+
   return {
+
+    pageLinks: factory(pageLinkSet),
+    imgLinks: {
+      get(){ return client.smembersAsync(imgLinkSet) },
+      put(link) { return cache(link, imgLinkSet) },
+      delete() { return deleteCache(imgLinkSet) }
+    },
 
 		get: function(){
       console.log('fetching redis set');
 			return client.smembersAsync(imgLinkSet);
 		},
-
-		// cache: function(data){
-		// 	client.rpush(['205Scrape', JSON.stringify(data)], function(err, res){
-		// 		console.log(res);
-		// 	});
-		// },
 
     getPageLinks: function(){
       return client.smembersAsync(pageLinkSet);

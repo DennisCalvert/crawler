@@ -37,18 +37,13 @@ function extractPageLinks(html){
 }
 
 function main(link = '/'){
-  //console.log('Main called: ', link);
-
   httpGet(link)
   .then(extractPageLinks)
   .then(digestPageLinks)
-  //.tap(console.log)
   .then(cachePageLinks)
   .catch(e => {
-    //console.log('\x1b[36m', 'failed caching:' ,'\x1b[0m', link);
     //console.error('failed caching: ', link);
     //safeRetry(link);
-    //log.error(e)
   })
 }
 
@@ -58,7 +53,7 @@ function main(link = '/'){
  */
 (function(){
   console.log('starting');
-  var r = new redis();
+  //var r = new redis();
   r.delPageLinks();
   console.log('cache cleared');
   main();

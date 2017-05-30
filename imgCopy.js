@@ -1,11 +1,10 @@
-var redis = require('./modules/Redis');
-var azure = require('azure-storage');
-var http = require('http');
-var config = require('./config');
+const redis = require('./modules/Redis');
+const azure = require('azure-storage');
+const http = require('http');
+const config = require('./config');
 
 const storageAccountName = config.azureStorage.accountName;
 const storageAccountKey = config.azureStorage.accountKey;
-//console.log(storageAccountKey, storageAccountName);
 const containerName = config.azureStorage.containerName;
 const conatinerConfig = {
   publicAccessLevel: 'blob'
@@ -36,19 +35,14 @@ function saveImg(url){
       port: 80,
       path: '/' + fileName
   };
-
   const blobOptions = {
     contentSettings: {
       contentType: contentType
     }
   };
 
-  // console.log(fileName,contentType);
-  // return;
-
   function handleHTTPError(statusCode){
     console.log('upload failed for: ', statusCode, url);
-    //saveImg(url);
     let r = new redis();
     r.addFailed(url);
   }
@@ -63,7 +57,6 @@ function saveImg(url){
   }
 
   http.get(requestOptions, function (httpResponse) {
-    //return;
     if (200 !== httpResponse.statusCode) {
       handleHTTPError(httpResponse.statusCode);
       return;
