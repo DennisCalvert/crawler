@@ -1,60 +1,55 @@
-
 const httpGet = require('./modules/httpFetch');
-const digestImageLinks = require('./modules/digestImageLinks');
 const digestPageLinks = require('./modules/digestPageLinks');
-const cheerio = require('cheerio');
 const log = require('./modules/log');
-const redis = require('./modules/Redis');
+const Bluebird = require('bluebird');
+const REDIS = require('./modules/Redis');
+const redis = new REDIS();
+const config = require('./config');
 
-const r = new redis();
-function safeRetry(link){
-  setTimeout(function(){
-    main(link);
-  },0);
-}
 
 function cachePageLinks(pageLinks){
-  return pageLinks.forEach(function(link){
-    return r.addPageLink(link)
-    .then((res) => {
-      // TODO Add logging here
-      //console.log(res);
-      if(res){
-        console.log('[cache:updated] ', link)
-        safeRetry(link);
-      } else {
-        console.log('[cache:notUpdate] already exists: ', link);
-      }      
-    })
-    .catch(e => console.log('error caching link: ', e));
-  });
+
+  function reduceLinkList(linkList, link) {    
+    console.log("[[crawl.js]]::reduceLinkList::",link);
+    return redis.addPageLink(link)
+      // If the link had not been cached already, add it 
+      // to the linkList so we can then crwal it as well
+      .then(res => res ? linkList.concat(link) : linkList)
+      .catch(e => log.error('error caching link: ', e));
+  }
+
+  return Bluebird.reduce(pageLinks, reduceLinkList, []);
 }
 
-function extractPageLinks(html){  
-  const $ = new cheerio.load(html);
-  const pageLinks = $('a').toArray();
-  return pageLinks;
-}
 
 function main(link = '/'){
-  httpGet(link)
-  .then(extractPageLinks)
-  .then(digestPageLinks)
-  .then(cachePageLinks)
-  .catch(e => {
-    //console.error('failed caching: ', link);
-    //safeRetry(link);
-  })
+  return httpGet(link)
+    .then(digestPageLinks)
+    .then(cachePageLinks)
+    .then(pageLinks => {
+      console.log('nextBatch', pageLinks);
+      if(pageLinks.length){
+        return Bluebird.map(pageLinks, main, {concurrency: config.linkSetCacheconCurrency});
+      } else {
+        // return "Complete!";
+        return Bluebird.resolve([]);
+      }
+    })
+    .catch(e => console.error('failed caching: ', link, e));
 }
 
 /*
  * Start service
  * empty cache then recusivley collect page links
  */
-(function(){
-  console.log('starting');
-  //var r = new redis();
-  r.delPageLinks();
-  console.log('cache cleared');
-  main();
-}());
+console.log('starting');
+redis.delPageLinks();
+log.info('cache cleared');
+Bluebird.all(main()).then(result => {
+  const success = result.every(e => e);
+  if(success){
+    log.info('Crawl Complete');
+  }  else {
+    log.error('Shit went wrong...');
+  }
+});

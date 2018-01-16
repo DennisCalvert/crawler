@@ -140,7 +140,7 @@ function RedisClient() {
     },
 
     addPageLink: function(link){
-      console.log('caching: ', link);
+      // console.log('caching: ', link);
       const deferred = new Q.defer();
       client.sadd(pageLinkSet, link, function(err, res){
         if(err){

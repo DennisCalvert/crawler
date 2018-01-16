@@ -8,6 +8,12 @@ function fetchData(path){
   path = encodeURI(path);
   console.log('[http:fetching] ', path);
 
+  if(path.includes('https://')){
+    path = path.slice(0,7);
+  } else if (path.includes('http://')){
+    path = path.slice(0,6);
+  }
+
   const deferred = Q.defer();    
 
   const httpConfig = {
