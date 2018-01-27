@@ -37,7 +37,7 @@ function fetchData(path){
   }
 
   if(config.target.domain.includes('https://')){
-    https.get(config.target.domain + path, httpCallback).on('error', httpErrorCallback);
+    https.get(path, httpCallback).on('error', httpErrorCallback);
   } else {
     http.get(path, httpCallback).on('error', httpErrorCallback);  
   }
