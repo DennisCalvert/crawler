@@ -29,7 +29,7 @@ function main(link = config.target.domain){
     .then(pageLinks => {
       console.log('nextBatch', pageLinks);
       if(pageLinks.length){
-        return Bluebird.map(pageLinks, main, {concurrency: config.linkSetCacheConcurrency});
+        return Bluebird.map(pageLinks, main, {concurrency: config.promiseConcurrency});
       } else {
         // return "Complete!";
         return Bluebird.resolve([]);
