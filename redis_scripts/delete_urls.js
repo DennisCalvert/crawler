@@ -1,4 +1,4 @@
-const redis = require('../modules/Redis');
+const redis = require('../lib/Redis');
 
 const r = new redis();
 
