@@ -22,5 +22,5 @@ module.exports = {
 		port: process.env.REDIS_PORT
 	},
 
-	promiseConcurrency: process.env.PROMISE_CONCURRENCY
+	promiseConcurrency:parseInt(process.env.PROMISE_CONCURRENCY)
 };;
