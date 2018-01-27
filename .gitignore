@@ -27,6 +27,6 @@ build/Release
 node_modules
 .sass-cache
 
-config.js
-
+.env
+start.sh
 .DS_Store

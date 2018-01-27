@@ -80,8 +80,8 @@ function RedisClient() {
         return client.smembersAsync(setName);
       },
 
-      put(data){
-        console.log('caching: ', data);
+      cache(data){
+        // console.log('caching: ', data);
         const deferred = new Q.defer();
         client.sadd(setName, data, function(err, res){
           if(err){
@@ -97,11 +97,11 @@ function RedisClient() {
       delete(){
         const deferred = new Q.defer();
         client.del(setName, function(err, res){
-        if(err){
-          deferred.reject(err);
-        } else {
-          deferred.resolve(res);
-        }
+          if(err){
+            deferred.reject(err);
+          } else {
+            deferred.resolve(res);
+          }
         });
         //client.quit();
         return deferred.promise;
@@ -109,18 +109,24 @@ function RedisClient() {
 
       copy(){
         return client.sunionstoreAsync(tempSetName, setName);
+      },
+
+      popCopy(){
+        return client.spopAsync(tempSetName);
       }
+
     }
   }
 
   return {
 
     pageLinks: factory(pageLinkSet),
-    imgLinks: {
-      get(){ return client.smembersAsync(imgLinkSet) },
-      put(link) { return cache(link, imgLinkSet) },
-      delete() { return deleteCache(imgLinkSet) }
-    },
+    imgLinks: factory(imgLinkSet),
+    // {
+    //   get(){ return client.smembersAsync(imgLinkSet) },
+    //   put(link) { return cache(link, imgLinkSet) },
+    //   delete() { return deleteCache(imgLinkSet) }
+    // },
 
 		get: function(){
       console.log('fetching redis set');
@@ -131,9 +137,9 @@ function RedisClient() {
       return client.smembersAsync(pageLinkSet);
     },
 
-    pageLinksCopySet: function(){
-      return client.sunionstoreAsync(tempPageLinkSet, pageLinkSet);
-    },
+    // pageLinksCopySet: function(){
+    //   return client.sunionstoreAsync(tempPageLinkSet, pageLinkSet);
+    // },
 
     popPageLink: function(){
       return client.spopAsync(tempPageLinkSet);

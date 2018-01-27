@@ -6,24 +6,19 @@ const config = require('../config');
 function fetchData(path){
 
   path = encodeURI(path);
-  console.log('[http:fetching] ', path);
 
-  if(path.includes('https://')){
-    path = path.slice(0,7);
-  } else if (path.includes('http://')){
-    path = path.slice(0,6);
-  }
+  // if(path.startsWith('/')){
+  //   path = config.target.domain + path;
+  // }
+
+  console.log('[http:fetching] ', path);
 
   const deferred = Q.defer();    
 
-  const httpConfig = {
-    hostname: config.target.domain,
-    port: 80,
-    path: path,
-    agent: false
-  };
-
   function httpCallback(res){
+    if(res.statusCode === 400){
+      deferred.reject("Status Code 400 for " + config.target.domain + path);
+    }
     var body = '';
     res.on("data", function(chunk){
       body += chunk;
@@ -44,7 +39,7 @@ function fetchData(path){
   if(config.target.domain.includes('https://')){
     https.get(config.target.domain + path, httpCallback).on('error', httpErrorCallback);
   } else {
-    http.get(httpConfig, httpCallback).on('error', httpErrorCallback);  
+    http.get(path, httpCallback).on('error', httpErrorCallback);  
   }
   
   return deferred.promise;

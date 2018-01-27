@@ -28,13 +28,18 @@ function getContentType(fileName){
 }
 
 function saveImg(url){
+
+  if(url.includes('https')){
+    return;
+  }
+
   const fileName = getFileName(url);
   const contentType = getContentType(fileName);
-  const requestOptions = {
-      host: domain,
-      port: 80,
-      path: '/' + fileName
-  };
+  // const requestOptions = {
+  //     host: domain,
+  //     port: 80,
+  //     path: '/' + fileName
+  // };
   const blobOptions = {
     contentSettings: {
       contentType: contentType
@@ -56,7 +61,7 @@ function saveImg(url){
     }
   }
 
-  http.get(requestOptions, function (httpResponse) {
+  http.get(url, function (httpResponse) {
     if (200 !== httpResponse.statusCode) {
       handleHTTPError(httpResponse.statusCode);
       return;
@@ -68,7 +73,7 @@ function saveImg(url){
       });
     httpResponse.pipe(writeStream);
     httpResponse.on('error', function(e){
-      console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!');
+      // console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!');
       console.log('error piping httpResponse to storage');
       console.log(url,filename)
     })

@@ -11,7 +11,7 @@ function cachePageLinks(pageLinks){
 
   function reduceLinkList(linkList, link) {    
     console.log("[[crawl.js]]::reduceLinkList::",link);
-    return redis.addPageLink(link)
+    return redis.pageLinks.cache(link)
       // If the link had not been cached already, add it 
       // to the linkList so we can then crwal it as well
       .then(res => res ? linkList.concat(link) : linkList)
@@ -22,14 +22,14 @@ function cachePageLinks(pageLinks){
 }
 
 
-function main(link = '/'){
+function main(link = config.target.domain){
   return httpGet(link)
     .then(digestPageLinks)
     .then(cachePageLinks)
     .then(pageLinks => {
       console.log('nextBatch', pageLinks);
       if(pageLinks.length){
-        return Bluebird.map(pageLinks, main, {concurrency: config.linkSetCacheconCurrency});
+        return Bluebird.map(pageLinks, main, {concurrency: config.linkSetCacheConcurrency});
       } else {
         // return "Complete!";
         return Bluebird.resolve([]);
@@ -43,13 +43,15 @@ function main(link = '/'){
  * empty cache then recusivley collect page links
  */
 console.log('starting');
-redis.delPageLinks();
-log.info('cache cleared');
-Bluebird.all(main()).then(result => {
-  const success = result.every(e => e);
-  if(success){
-    log.info('Crawl Complete');
-  }  else {
-    log.error('Shit went wrong...');
-  }
+redis.pageLinks.delete().then(() => {
+  log.info('cache cleared');
+  Bluebird.all(main()).then(result => {
+    const success = result.every(e => e);
+    if(success){
+      log.info('Crawl Complete');
+    }  else {
+      log.error('Shit went wrong...');
+    }
+    // process.exit();
+  });
 });

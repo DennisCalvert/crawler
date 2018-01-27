@@ -6,15 +6,22 @@ const config = require('../config');
 // domNode :
 function digestImageLinks(rawHTML){
 
+  let r = new redis(); 
+
   function extractImgLinks(html){
     const $ = new cheerio.load(html);
     const imgLinks = $('img').toArray();
     return imgLinks;
   }
 
-  function digestImageLink(urlList, url){
+  function imageLinkArrayReducer(urlList, url){
     // console.log('caching: ', url);
-    let r = new redis();
+    
+
+    if(url.startsWith('/')){
+      url = config.target.domain + url;  
+    }
+
     // If we can determine that the image has been scaled down,
     // let's try to recover the original resolution
     // we are testing for the pressence of wordpress style
@@ -27,7 +34,6 @@ function digestImageLinks(rawHTML){
       const fullResImageURL = url.substring(0, rangeStart) + url.substring(rangeEnd);
       urlList.push(r.addImgLink(fullResImageURL))
     }
-
     return urlList.concat(r.addImgLink(url))
   }
 
@@ -40,7 +46,7 @@ function digestImageLinks(rawHTML){
     .filter(img => img.attribs && img.attribs.src)
     .map(img => img.attribs.src)
     .filter(src => src.includes('.jpg'))
-    .reduce(digestImageLink, [])
+    .reduce(imageLinkArrayReducer, [])
   );
 }
 
