@@ -5,6 +5,7 @@ const app = express()
 const path = require('path');
 const bodyParser = require('body-parser')
 const siteCrawler = require('./lib/crawl')
+const crawlImages = require('./lib/crawlImages')
 const redis = require('./lib/Redis')
 const config = require('./config')
 
@@ -31,21 +32,25 @@ app.post('*', jsonParser, function(req, res, next){
 })
 
 app.post('/crawl/url/', jsonParser, function (req, res) {
-    const r = new redis();
-    siteCrawler(req.body.targetUrl)
+    const r = new redis(req.body.targetUrl);
+    siteCrawler(req.body.targetUrl, r)
     .then(r.pageLinks.get)
     .then(cachedUrls => {
-        res.json({cachedUrls})    
+        res.json({data:cachedUrls})    
     })
     
 })
 
-app.post('/crawlImages/', jsonParser, function (req, res) {
-    const r = new redis();
-    siteCrawler(req.body.targetUrl)
-    .then(r.pageLinks.get)
-    .then(cachedUrls => {
-        res.json({cachedUrls})    
+app.post('/crawl/imgLinks/', jsonParser, function (req, res) {
+    console.log('fuck')
+    if(!req.body.targetUrl){
+        res.status(500);
+    }
+    const r = new redis(req.body.targetUrl);
+    crawlImages(r)
+    .then(r.imgLinks.get)
+    .then(cachedImgLinks => {
+        res.json({data:cachedImgLinks})    
     })
     
 })
