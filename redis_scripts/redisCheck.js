@@ -8,7 +8,7 @@ var r = new redis();
 
 // r.getPageLinks().then(console.log);
 
-r.getPageLinks().then(linkList => {
+r.pageLinks.get().then(linkList => {
 
     let trump = linkList.filter(link => link.includes('trump'));
     console.log(linkList.length);

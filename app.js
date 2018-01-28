@@ -30,7 +30,17 @@ app.post('*', jsonParser, function(req, res, next){
     }
 })
 
-app.post('/crawl/', jsonParser, function (req, res) {
+app.post('/crawl/url/', jsonParser, function (req, res) {
+    const r = new redis();
+    siteCrawler(req.body.targetUrl)
+    .then(r.pageLinks.get)
+    .then(cachedUrls => {
+        res.json({cachedUrls})    
+    })
+    
+})
+
+app.post('/crawlImages/', jsonParser, function (req, res) {
     const r = new redis();
     siteCrawler(req.body.targetUrl)
     .then(r.pageLinks.get)
