@@ -47,7 +47,7 @@ app.post('/crawl/imgLinks/', jsonParser, function (req, res) {
         res.status(500);
     }
     const r = new redis(req.body.targetUrl);
-    crawlImages(r)
+    crawlImages( req.body.targetUrl, r)
     .then(r.imgLinks.get)
     .then(cachedImgLinks => {
         res.json({data:cachedImgLinks})    
