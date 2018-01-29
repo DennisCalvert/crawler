@@ -33,10 +33,14 @@ app.post('*', jsonParser, function(req, res, next){
 })
 
 app.post('/crawl/url/', jsonParser, function (req, res) {
+    const domain = req.body.targetUrl;
     const r = new redis(req.body.targetUrl);
-    siteCrawler(req.body.targetUrl, r)
+    siteCrawler(domain, r)
     .then(r.pageLinks.get)
     .then(data => {
+        log.info('Closing redis client for ', domain)
+        r.client.quit()
+        log.info(`Finished indexing ${data.length} URLs for ${domain}`)
         res.json({data:data})    
     })
     
@@ -52,6 +56,8 @@ app.post('/crawl/imgLinks/', jsonParser, function (req, res) {
     crawlImages(domain, r)
     .then(r.imgLinks.get)
     .then(data => {
+        log.info('Closing redis client for ', domain)
+        r.client.quit()
         log.info(`Finished indexing ${data.length} images for ${domain}`)
         res.json({data:data})    
     })
