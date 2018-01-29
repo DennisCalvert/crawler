@@ -35,22 +35,21 @@ app.post('/crawl/url/', jsonParser, function (req, res) {
     const r = new redis(req.body.targetUrl);
     siteCrawler(req.body.targetUrl, r)
     .then(r.pageLinks.get)
-    .then(cachedUrls => {
-        res.json({data:cachedUrls})    
+    .then(data => {
+        res.json({data:data})    
     })
     
 })
 
 app.post('/crawl/imgLinks/', jsonParser, function (req, res) {
-    console.log('fuck')
     if(!req.body.targetUrl){
         res.status(500);
     }
     const r = new redis(req.body.targetUrl);
     crawlImages( req.body.targetUrl, r)
     .then(r.imgLinks.get)
-    .then(cachedImgLinks => {
-        res.json({data:cachedImgLinks})    
+    .then(data => {
+        res.json({data:data})    
     })
     
 })
