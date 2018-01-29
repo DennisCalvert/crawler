@@ -8,6 +8,7 @@ const siteCrawler = require('./lib/crawl')
 const crawlImages = require('./lib/crawlImages')
 const redis = require('./lib/Redis')
 const config = require('./config')
+const log = require('./lib/log');
 
 const jsonParser = bodyParser.json()
 
@@ -42,16 +43,18 @@ app.post('/crawl/url/', jsonParser, function (req, res) {
 })
 
 app.post('/crawl/imgLinks/', jsonParser, function (req, res) {
-    if(!req.body.targetUrl){
-        res.status(500);
+    const domain = req.body.targetUrl
+    log.info(`Starting image indexing for ${domain}`)
+    if(!domain){
+        res.status(500)
     }
-    const r = new redis(req.body.targetUrl);
-    crawlImages( req.body.targetUrl, r)
+    const r = new redis(domain)
+    crawlImages(domain, r)
     .then(r.imgLinks.get)
     .then(data => {
+        log.info(`Finished indexing ${data.length} images for ${domain}`)
         res.json({data:data})    
     })
-    
 })
 
 app.listen(config.port)
