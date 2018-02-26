@@ -6,9 +6,11 @@ const path = require('path');
 const bodyParser = require('body-parser')
 const siteCrawler = require('./lib/crawl')
 const crawlImages = require('./lib/crawlImages')
+// const copyPageContnet = require('.lib/copyPageContnet')
 const redis = require('./lib/Redis')
 const config = require('./config')
 const log = require('./lib/log');
+const copyPageContent = require('./lib/contentParsers/copyPageContent');
 
 const jsonParser = bodyParser.json()
 
@@ -36,6 +38,7 @@ app.post('/crawl/url/', jsonParser, function (req, res) {
     const domain = req.body.targetUrl;
     const r = new redis(req.body.targetUrl);
     siteCrawler(domain, r)
+    .then(() => copyPageContnet(r))
     .then(r.pageLinks.get)
     .then(data => {
         log.info('Closing redis client for ', domain)
@@ -53,8 +56,7 @@ app.post('/crawl/imgLinks/', jsonParser, function (req, res) {
         res.status(500)
     }
     const r = new redis(domain)
-    crawlImages(domain, r)
-    .then(r.imgLinks.get)
+    copyPageContent(domain, r)
     .then(data => {
         log.info('Closing redis client for ', domain)
         r.client.quit()
@@ -63,4 +65,22 @@ app.post('/crawl/imgLinks/', jsonParser, function (req, res) {
     })
 })
 
+const copyRoute = '/copy/content/';
+
+app.post(copyRoute, jsonParser, function (req, res) {
+    const domain = req.body.targetUrl
+    log.info(`${'/copy/content/'}::Starting content copy for ${domain}`)
+    if(!domain){
+        log.error(`${'/copy/content/'}:: No URL recived`)
+        res.status(500)
+    }
+    const r = new redis(domain)
+    copyPageContnet(r)
+        .then(data => {
+            log.info('Closing redis client for ', domain)
+            r.client.quit()
+            log.info(`Finished indexing ${data.length} images for ${domain}`)
+            res.json({data:data})    
+    })
+})
 app.listen(config.port)
