@@ -10,6 +10,7 @@ module.exports = {
 		imageHost: targetImageHost || domain
 	},
 
+	// TODO replace with S3 integration
 	azureStorage: {
 		accountName: process.env.AZURE_STORAGE_ACCOUNT_NAME,
 		accountKey: process.env.AZURE_STORAGE_ACCOUNT_KEY,
@@ -17,12 +18,12 @@ module.exports = {
 	},
 
 	redis: {
-		host: process.env.REDIS_HOST,
-		authKey: process.env.REDIS_AUTHKEY,
-		port: process.env.REDIS_PORT
+		host: process.env.REDIS_HOST || 'localhost',
+		authKey: process.env.REDIS_AUTHKEY || '',
+		port: process.env.REDIS_PORT || 6379
 	},
 
-	promiseConcurrency:parseInt(process.env.PROMISE_CONCURRENCY),
+	promiseConcurrency:parseInt(process.env.PROMISE_CONCURRENCY || 5),
 
 	port: process.env.PORT || 3000
 };;
